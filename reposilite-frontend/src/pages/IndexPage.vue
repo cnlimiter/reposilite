@@ -18,7 +18,6 @@
 import { computed, ref, watchEffect, defineAsyncComponent } from 'vue'
 import { useSession } from '../store/session'
 import useQualifier from '../store/qualifier'
-import useI18n from '../store/i18n'
 import DefaultHeader from '../components/header/DefaultHeader.vue'
 import FileBrowserView from '../components/browser/FileBrowserView.vue'
 import {Tabs, Tab, TabPanels, TabPanel} from 'vue3-tabs'
@@ -28,17 +27,15 @@ const ConsoleView = defineAsyncComponent(() => import('../components/console/Con
 const DashboardView = defineAsyncComponent(() => import('../components/dashboard/DashboardView.vue'))
 const SettingsView = defineAsyncComponent(() => import('../components/settings/SettingsView.vue'))
 
-const { t } = useI18n()
-
 defineProps({
   qualifier: property(Object, true)
 })
 
 const listOfTabs = [
-  { name: 'overview', key: 'overview', manager: false },
-  { name: 'dashboard', key: 'dashboard', manager: true },
-  { name: 'console', key: 'console', manager: true },
-  { name: 'settings', key: 'settings', manager: true },
+  { name: 'Overview', manager: false },
+  { name: 'Dashboard', manager: true },
+  { name: 'Console', manager: true },
+  { name: 'Settings', manager: true },
 ]
 
 const { isManager } = useSession()
@@ -47,22 +44,23 @@ const { redirectTo } = useQualifier()
 const menuTabs = computed(() => {
   return listOfTabs
     .filter(entry => !entry?.manager || isManager.value)
+    .map(entry => entry.name)
 })
 
-const selectedTab = ref(localStorage.getItem('selectedTab') || 'overview')
+const selectedTab = ref(localStorage.getItem('selectedTab') || 'Overview')
 
 watchEffect(() => {
   localStorage.setItem('selectedTab', selectedTab.value)
 })
 
 const createTabClick = (newTab) => {
-  if (newTab === 'overview') {
+  if (newTab == 'Overview') {
     redirectTo('/')
   }
 }
 
-const selectHomepage = () =>
-  selectedTab.value = 'overview'
+const selectHomepage = () => 
+  selectedTab.value = 'Overview'
 </script>
 
 <template>
@@ -70,18 +68,26 @@ const selectHomepage = () =>
     <DefaultHeader :logoClickCallback="selectHomepage" />
     <div class="bg-gray-100 dark:bg-black overflow-y-visible">
       <div class="container mx-auto <sm:px-0">
-        <Tabs
+        <Tabs 
           v-model="selectedTab"
           @update:modelValue="createTabClick"
         >
-          <template
-            v-for="(tab, i) in menuTabs"
+          <template 
+            v-for="(tab, i) in menuTabs" 
             :key="`menu${i}`"
           >
             <Tab
+              v-if="tab !== 'Dashboard'"
               class="item font-normal <sm:w-1/4"
-              :val="tab.key"
-              :label="t(tab.name)"
+              :val="tab"
+              :label="tab"
+              :indicator="true"
+            />
+            <Tab
+              v-if="tab === 'Dashboard'"
+              class="item font-normal dashboard <sm:w-1/4"
+              :val="tab"
+              :label="tab"
               :indicator="true"
             />
           </template>
@@ -90,17 +96,17 @@ const selectHomepage = () =>
       <hr class="dark:border-gray-700">
       <div class="overflow-auto">
         <TabPanels v-model="selectedTab">
-          <TabPanel :val="'overview'">
-            <FileBrowserView v-if="selectedTab === 'overview'" :qualifier="qualifier" ref=""/>
+          <TabPanel :val="'Overview'">
+            <FileBrowserView v-if="selectedTab == 'Overview'" :qualifier="qualifier" ref=""/>
           </TabPanel>
-          <TabPanel :val="'dashboard'" v-show="isManager">
-            <DashboardView v-if="selectedTab === 'dashboard'" :selectedTab="selectedTab" />
+          <TabPanel :val="'Dashboard'" v-show="isManager">
+            <DashboardView v-if="selectedTab == 'Dashboard'" :selectedTab="selectedTab" />
           </TabPanel>
-          <TabPanel :val="'console'" v-show="isManager">
-            <ConsoleView v-if="selectedTab === 'console'" :selectedTab="selectedTab" />
+          <TabPanel :val="'Console'" v-show="isManager">
+            <ConsoleView v-if="selectedTab == 'Console'" :selectedTab="selectedTab" />
           </TabPanel>
-          <TabPanel :val="'settings'" v-show="isManager">
-            <SettingsView v-if="selectedTab === 'settings'" :selectedTab="selectedTab" />
+           <TabPanel :val="'Settings'" v-show="isManager">
+            <SettingsView v-if="selectedTab == 'Settings'" :selectedTab="selectedTab" />
           </TabPanel>
         </TabPanels>
       </div>
