@@ -20,6 +20,9 @@ import { createToast } from 'mosha-vue-toastify'
 import { useSession } from '../../store/session'
 import useLog from '../../store/console/log'
 import useConsole from '../../store/console/connection'
+import useLocale from '../../store/locale'
+
+const { t } = useLocale()
 
 const props = defineProps({
   selectedTab: {
@@ -60,10 +63,10 @@ const setupConnection = () => {
   }
   onError.value = error => {
     console.log(error)
-    createToast(`Console connection error - Cannot establish SSE connection.`, { type: 'danger' })
+    createToast(t('consoleConnectionError'), { type: 'danger' })
   }
-  onClose.value = () => createToast('Connection with console has been lost', { type: 'danger' })
-  createToast('Connecting to the remote console', { type: 'info', })
+  onClose.value = () => createToast(t('consoleConnectionLost'), { type: 'danger' })
+  createToast(t('connectingToConsole'), { type: 'info', })
   const { token } = useSession()
   connect(token.value)
 }
@@ -71,7 +74,7 @@ const setupConnection = () => {
 watch(
   () => props.selectedTab,
   (selectedTab, previous) => {
-    if (selectedTab === 'Console' && previous == undefined && !isConnected()) {
+    if (selectedTab === 'console' && previous == undefined && !isConnected()) {
       setupConnection()
     }
   },
@@ -82,12 +85,12 @@ watch(
 <template>
   <div class="container mx-auto pt-10 px-15 pb-10 text-xs">
     <div class="flex text-sm flex-col xl:flex-row w-full py-2 justify-between">
-      <input placeholder="Filter" v-model="filter" class="w-full xl:w-1/2 mr-5 py-1 px-4 rounded-lg bg-white dark:bg-gray-900" />
+      <input :placeholder="$t('filter')" v-model="filter" class="w-full xl:w-1/2 mr-5 py-1 px-4 rounded-lg bg-white dark:bg-gray-900" />
       <div class="flex flex-row justify-around w-full xl:w-1/2 <md:flex-wrap">
         <div v-for="level in levels" :key="level.name" class="pt-1.9 xl:pt-0.8 font-sans whitespace-nowrap">
           <input
-            type="checkbox" 
-            :checked="level.enabled" 
+            type="checkbox"
+            :checked="level.enabled"
             @change="level.enabled = !level.enabled"
           >
           <span class="pl-2 pr-4">{{ level.name }} ({{ level.count }})</span>
@@ -101,7 +104,7 @@ watch(
       <hr class="dark:border-dark-300">
       <input
         id="consoleInput"
-        placeholder="Type command or '?' to get help"
+        :placeholder="$t('typeCommandHelp')"
         class="w-full py-2 px-4 rounded-b-lg bg-white dark:bg-gray-900 dark:text-white"
         autocomplete="off"
         v-model="command"

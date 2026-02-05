@@ -23,6 +23,9 @@ import { createToast } from 'mosha-vue-toastify'
 import { computed } from 'vue'
 import useQualifier from '../../store/qualifier'
 import { property } from '../../helpers/vue-extensions'
+import useLocale from '../../store/locale'
+
+const { t } = useLocale()
 
 const props = defineProps({
   value: property(Object, false),
@@ -35,7 +38,7 @@ const { refreshQualifier } = useQualifier()
 const deleteEntry = ({ path, file }) => {
   client.value.maven.delete(path + '/' + file)
     .then(() => refreshQualifier())
-    .catch(error => createToast(`Cannot delete file - ${error.response.status}: ${error.response.data.message}`, {
+    .catch(error => createToast(t('cannotDeleteFile') + ` - ${error.response.status}: ${error.response.data.message}`, {
       type: 'danger'
     }))
 }
@@ -65,14 +68,14 @@ export default {
       <div class="relative border bg-white dark:bg-gray-900 border-gray-100 dark:border-black m-w-20 py-5 px-10 rounded-2xl shadow-xl text-center">
         <div>
           <h1 class="font-bold px-16">
-            Do you want to delete 
+            {{ $t('deleteFilePrompt') }}
             <span class="text-red-700">
               {{ '/' + value.path + '/' + value.file }}
             </span>
           </h1>
           <div class="flex flex-row justify-evenly pt-4">
-            <button @click="deleteAndClose()" class="px-12 py-1 rounded-full bg-red-500">Confirm</button>
-            <button @click="close()" class="px-12 py-1 rounded-full bg-gray-200 dark:bg-gray-600">Cancel</button>
+            <button @click="deleteAndClose()" class="px-12 py-1 rounded-full bg-red-500">{{ $t('confirm') }}</button>
+            <button @click="close()" class="px-12 py-1 rounded-full bg-gray-200 dark:bg-gray-600">{{ $t('cancel') }}</button>
           </div>
         </div>
         <button class="absolute top-0 right-0 mt-5 mr-9" @click.left.prevent="close()" v-on:click.stop>

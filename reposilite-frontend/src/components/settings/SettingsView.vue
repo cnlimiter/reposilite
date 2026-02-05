@@ -22,17 +22,20 @@ import { useConfiguration } from '../../store/configuration'
 import download from 'downloadjs'
 import FactoryResetModal from './FactoryResetModal.vue'
 import { property } from '../../helpers/vue-extensions'
+import useLocale from '../../store/locale'
 
 const props = defineProps({
   selectedTab: property(String, true)
 })
 
+const { t } = useLocale()
+
 const {
   fetchConfiguration,
-  updateConfiguration, 
-  renderers, 
+  updateConfiguration,
+  renderers,
   configurationValidator,
-  domains, 
+  domains,
   configurations,
   schemas,
   selectedDomain
@@ -41,8 +44,8 @@ const {
 const isValid = ref(true)
 const hasChanged = ref(false)
 
-const executeIfValid = (callback) => { 
-  if (isValid.value) callback() 
+const executeIfValid = (callback) => {
+  if (isValid.value) callback()
 }
 
 const updateFormsConfiguration = (domain, event) => {
@@ -60,7 +63,7 @@ watch(
   () => props.selectedTab,
   (selectedTab, prev) => {
     /* Fetch configuration only when user opens the configuration tab  */
-    if (selectedTab === 'Settings' && prev == undefined && domains.value.length == 0)
+    if (selectedTab === 'settings' && prev == undefined && domains.value.length == 0)
       fetchConfiguration()
   },
   { immediate: true }
@@ -91,37 +94,37 @@ const formsConfiguration = {
   <div class="container mx-auto py-10 px-15">
     <div class="flex justify-between pb-3 flex-col">
       <div>
-        <p>Modify configuration shared between all instances.</p>
-        <p><strong>Remember</strong>: Configuration propagation can take up to 10 seconds on all your instances.</p>
+        <p>{{ $t('configuration') }}</p>
+        <p><strong>{{ $t('remember') }}</strong>: {{ $t('configPropagation') }}</p>
       </div>
       <div id="configuration-state" class="flex flex-row pt-8">
-        <button 
-          @click.prevent="executeIfValid(downloadSettings)" 
+        <button
+          @click.prevent="executeIfValid(downloadSettings)"
           class="bg-gray-800 dark:bg-gray-600"
           :class="{ forbidden: !isValid }"
         >
-          Download as JSON
+          {{ $t('downloadAsJson') }}
         </button>
         <FactoryResetModal :callback="factoryReset">
             <template v-slot:button>
-                <button class="bg-gray-800 dark:bg-gray-600">Factory reset</button>
+                <button class="bg-gray-800 dark:bg-gray-600">{{ $t('factoryReset') }}</button>
             </template>
         </FactoryResetModal>
-        <button 
-          @click.prevent="executeIfValid(updateConfiguration)" 
+        <button
+          @click.prevent="executeIfValid(updateConfiguration)"
           class="bg-gray-500 dark:bg-gray-800 cursor-not-allowed"
           :class="{ changed: hasChanged, forbidden: !isValid }"
           :disabled="!isValid || !hasChanged"
         >
-          Update and reload
+          {{ $t('updateAndReload') }}
         </button>
-        <button 
+        <button
           @click.prevent="fetchConfiguration"
           class="bg-gray-500 dark:bg-gray-800 cursor-not-allowed"
           :class="{ changed: hasChanged }"
           :disabled="!isValid || !hasChanged"
         >
-          Reset changes
+          {{ $t('resetChanges') }}
         </button>
       </div>
     </div>

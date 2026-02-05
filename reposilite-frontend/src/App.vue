@@ -20,17 +20,20 @@ import { useSession } from "./store/session"
 import useTheme from "./store/theme"
 import useQualifier from "./store/qualifier"
 import usePlaceholders from './store/placeholders'
+import useLocale from "./store/locale"
 
 const { title, description, icpLicense } = usePlaceholders()
 const { theme, fetchColorMode } = useTheme()
 const { initializeSession } = useSession()
 const { qualifier } = useQualifier()
+const { fetchLocale } = useLocale()
 
 useHead({
-  title, 
+  title,
   description
 })
 fetchColorMode()
+fetchLocale()
 initializeSession().catch(() => {})
 </script>
 

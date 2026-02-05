@@ -20,18 +20,21 @@ import { VueFinalModal } from 'vue-final-modal'
 import { createToast } from 'mosha-vue-toastify'
 import { useSession } from '../../store/session'
 import CloseIcon from '../icons/CloseIcon.vue'
+import useLocale from '../../store/locale'
+
+const { t } = useLocale()
 
 const { login } = useSession()
 const showLogin = ref(false)
 const name = ref('')
 const secret = ref('')
 
-const close = () => 
+const close = () =>
   (showLogin.value = false)
 
 const signin = (name, secret) =>
   login(name, secret)
-    .then(() => createToast(`Dashboard accessed as ${name}`, { position: 'bottom-right' }))
+    .then(() => createToast(t('dashboardAccessedAs') + ' ' + name, { position: 'bottom-right' }))
     .then(() => close())
     .catch(error => createToast(`${error.response.status}: ${error.response.data.message}`, { type: 'danger' }))
 </script>
@@ -50,14 +53,14 @@ export default {
       class="flex justify-center items-center"
     >
       <div class="relative border bg-white dark:bg-gray-900 border-gray-100 dark:border-black m-w-20 py-5 px-10 rounded-2xl shadow-xl text-center">
-        <p class="font-bold text-xl pb-4">Login with access token</p>
+        <p class="font-bold text-xl pb-4">{{ $t('loginWithToken') }}</p>
         <form class="flex flex-col w-96 <sm:w-65" @submit.prevent="signin(name, secret)">
-          <input placeholder="Name" v-model="name" type="text" class="input"/>
-          <input placeholder="Secret" v-model="secret" type="password" class="input"/>
+          <input :placeholder="$t('name')" v-model="name" type="text" class="input"/>
+          <input :placeholder="$t('secret')" v-model="secret" type="password" class="input"/>
           <div class="text-right mt-1">
-            <button @click="close()" class="text-blue-400 text-xs">← Back to index</button>
+            <button @click="close()" class="text-blue-400 text-xs">← {{ $t('backToIndex') }}</button>
           </div>
-          <button class="bg-gray-100 dark:bg-gray-800 py-2 my-3 rounded-md cursor-pointer">Sign in</button>
+          <button class="bg-gray-100 dark:bg-gray-800 py-2 my-3 rounded-md cursor-pointer">{{ $t('signIn') }}</button>
         </form>
         <button class="absolute top-0 right-0 mt-5 mr-5" @click="close()">
           <CloseIcon />
