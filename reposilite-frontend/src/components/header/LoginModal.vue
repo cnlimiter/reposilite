@@ -24,13 +24,12 @@ import useLocale from '../../store/locale'
 import useOidc from '../../store/oidc'
 
 const { t } = useLocale()
-const { oidc, fetchOidcStatus, login: oidcLogin, register } = useOidc()
+const { oidc, fetchOidcStatus } = useOidc()
 const { login } = useSession()
 
 const showLogin = ref(false)
 const name = ref('')
 const secret = ref('')
-const loginMode = ref('local')
 
 const close = () =>
   (showLogin.value = false)
@@ -41,25 +40,13 @@ const signin = (name, secret) =>
     .then(() => close())
     .catch(error => createToast(`${error.response?.status}: ${error.response?.data?.message}`, { type: 'danger' }))
 
+const handleOidcLogin = () => {
+  window.location.href = '/api/auth/oidc/login'
+}
+
 onMounted(() => {
   fetchOidcStatus()
 })
-
-const handleOidcLogin = () => {
-  oidcLogin()
-}
-
-const handleOidcRegister = () => {
-  register()
-}
-
-const switchToLocal = () => {
-  loginMode.value = 'local'
-}
-
-const switchToOidc = () => {
-  loginMode.value = 'oidc'
-}
 </script>
 
 <script>
@@ -77,51 +64,19 @@ export default {
       @click.self="close"
     >
       <div class="relative border bg-white dark:bg-gray-900 border-gray-100 dark:border-black m-w-20 py-5 px-10 rounded-2xl shadow-xl text-center">
-        <!-- OIDC Login Mode -->
-        <template v-if="oidc.enabled && loginMode === 'oidc'">
-          <p class="font-bold text-xl pb-4">{{ $t('loginWithOidc') }}</p>
-          <div class="flex flex-col w-96 <sm:w-65 gap-3">
-            <button
-              @click="handleOidcLogin"
-              class="bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-md cursor-pointer font-medium transition-colors"
-            >
-              {{ $t('signInWithOidc') }}
-            </button>
-            <button
-              @click="handleOidcRegister"
-              class="bg-green-600 hover:bg-green-700 text-white py-3 rounded-md cursor-pointer font-medium transition-colors"
-            >
-              {{ $t('registerWithOidc') }}
-            </button>
-            <button
-              @click="switchToLocal"
-              class="text-blue-400 hover:text-blue-500 text-sm mt-2"
-            >
-              ← {{ $t('useLocalAccount') }}
-            </button>
-          </div>
-        </template>
-
-        <!-- Local Login Mode -->
-        <template v-else>
-          <p class="font-bold text-xl pb-4">{{ $t('loginWithToken') }}</p>
-          <form class="flex flex-col w-96 <sm:w-65" @submit.prevent="signin(name, secret)">
-            <input :placeholder="$t('name')" v-model="name" type="text" class="input"/>
-            <input :placeholder="$t('secret')" v-model="secret" type="password" class="input"/>
-            <div class="text-right mt-1">
-              <button @click="close()" class="text-blue-400 text-xs">← {{ $t('backToIndex') }}</button>
-            </div>
-            <button class="bg-gray-100 dark:bg-gray-800 py-2 my-3 rounded-md cursor-pointer">{{ $t('signIn') }}</button>
-          </form>
+        <p class="font-bold text-xl pb-4">{{ $t('loginWithToken') }}</p>
+        <form class="flex flex-col w-96 <sm:w-65" @submit.prevent="signin(name, secret)">
+          <input :placeholder="$t('name')" v-model="name" type="text" class="input"/>
+          <input :placeholder="$t('secret')" v-model="secret" type="password" class="input"/>
+          <button class="bg-gray-100 dark:bg-gray-800 py-2 my-3 rounded-md cursor-pointer">{{ $t('signIn') }}</button>
           <button
-            v-if="oidc.enabled && !oidc.loading"
-            @click="switchToOidc"
-            class="text-blue-400 hover:text-blue-500 text-sm mt-2"
+              v-if="oidc.enabled && !oidc.loading"
+              @click="handleOidcLogin"
+              class="bg-blue-600 hover:bg-blue-700 text-white py-2 my-3 rounded-md cursor-pointer"
           >
-            {{ $t('useOidcAccount') }}
+            {{ $t('signInWithOidc') }}
           </button>
-        </template>
-
+        </form>
         <button class="absolute top-0 right-0 mt-5 mr-5" @click="close()">
           <CloseIcon />
         </button>

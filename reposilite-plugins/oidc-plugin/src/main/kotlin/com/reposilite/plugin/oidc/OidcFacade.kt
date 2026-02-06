@@ -48,13 +48,12 @@ interface OidcFacade : Facade {
     fun generateAuthorizationUrl(): String
 
     /**
-     * Generate a new authorization URL with the specified prompt.
-     * @param prompt The OAuth2 prompt parameter (e.g., "consent", "login", "select_account")
-     */
-    fun generateAuthorizationUrl(prompt: String): String
-
-    /**
      * Get the current OIDC settings.
      */
     fun getOidcSettings(): OidcSettings
+
+    /**
+     * Clear cached discovered endpoints (useful when settings change).
+     */
+    fun clearDiscoveredEndpoints()
 }

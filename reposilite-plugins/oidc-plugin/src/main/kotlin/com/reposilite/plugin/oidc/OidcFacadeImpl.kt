@@ -54,16 +54,22 @@ class OidcFacadeImpl(
     private val userSessions = mutableMapOf<String, OidcUserSession>()
     private val secureRandom = SecureRandom()
 
+    // Cached discovered endpoints
+    private var discoveredEndpoints: DiscoveredEndpoints? = null
+    private var discoveredIssuer: String? = null
+
+    data class DiscoveredEndpoints(
+        val authorizationEndpoint: String,
+        val tokenEndpoint: String,
+        val userinfoEndpoint: String?
+    )
+
     override fun getAuthorizationUrl(): String {
         return generateAuthorizationUrl()
     }
 
     override fun generateAuthorizationUrl(): String {
         return generateAuthorizationUrlWithPrompt(null)
-    }
-
-    override fun generateAuthorizationUrl(prompt: String): String {
-        return generateAuthorizationUrlWithPrompt(prompt)
     }
 
     private fun generateAuthorizationUrlWithPrompt(prompt: String?): String {
@@ -77,8 +83,8 @@ class OidcFacadeImpl(
         val state = generateSecureState()
         val nonce = generateSecureState()
 
-        // Build authorization URL
-        val authEndpoint = "${settings.issuer.removeSuffix("/")}/login"
+        // Get authorization endpoint (use configured or discover)
+        val authEndpoint = getAuthorizationEndpoint()
         val scopes = settings.scopes.split(" ").filter { it.isNotBlank() }.joinToString(" ")
 
         val params = mutableMapOf(
@@ -97,6 +103,115 @@ class OidcFacadeImpl(
 
         val queryString = params.entries.joinToString("&") { "${it.key}=${encodeURIComponent(it.value)}" }
         return "$authEndpoint?$queryString"
+    }
+
+    /**
+     * Get authorization endpoint, using configured value or auto-discovery
+     */
+    private fun getAuthorizationEndpoint(): String {
+        val settings = oidcSettings.get()
+
+        // Use configured endpoint if available
+        if (settings.authorizationEndpoint.isNotBlank()) {
+            return settings.authorizationEndpoint
+        }
+
+        // Auto-discover endpoints
+        val endpoints = discoverEndpoints()
+        return endpoints.authorizationEndpoint
+    }
+
+    /**
+     * Get token endpoint, using configured value or auto-discovery
+     */
+    private fun getTokenEndpoint(): String {
+        val settings = oidcSettings.get()
+
+        // Use configured endpoint if available
+        if (settings.tokenEndpoint.isNotBlank()) {
+            return settings.tokenEndpoint
+        }
+
+        // Auto-discover endpoints
+        val endpoints = discoverEndpoints()
+        return endpoints.tokenEndpoint
+    }
+
+    /**
+     * Auto-discover OIDC endpoints from issuer's .well-known/openid-configuration
+     */
+    @Suppress("UNCHECKED_CAST")
+    private fun discoverEndpoints(): DiscoveredEndpoints {
+        val settings = oidcSettings.get()
+
+        if (settings.issuer.isBlank()) {
+            throw IllegalStateException("OIDC issuer not configured")
+        }
+
+        // Clear cache if issuer changed
+        if (discoveredIssuer != settings.issuer) {
+            discoveredEndpoints = null
+            discoveredIssuer = settings.issuer
+        }
+
+        // Return cached endpoints if available
+        discoveredEndpoints?.let { return it }
+
+        val discoveryUrl = "${settings.issuer.removeSuffix("/")}/.well-known/openid-configuration"
+
+        journalist.logger.debug("[OIDC] Discovering endpoints from: $discoveryUrl")
+
+        val request = HttpRequest.newBuilder()
+            .uri(URI.create(discoveryUrl))
+            .header("Accept", "application/json")
+            .GET()
+            .build()
+
+        try {
+            val response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
+
+            if (response.statusCode() != 200) {
+                journalist.logger.debug("[OIDC] Discovery failed with status: ${response.statusCode()}")
+                throw IllegalStateException("Failed to fetch OIDC discovery document")
+            }
+
+            val discoveryBody = response.body()
+            journalist.logger.debug("[OIDC] Discovery response: $discoveryBody")
+
+            val discovery = objectMapper.readValue(discoveryBody, Map::class.java) as Map<String, Any>
+
+            val authEndpoint = (discovery["authorization_endpoint"] as? String)
+                ?: throw IllegalStateException("authorization_endpoint not found in discovery document")
+
+            val tokenEndpoint = (discovery["token_endpoint"] as? String)
+                ?: throw IllegalStateException("token_endpoint not found in discovery document")
+
+            val userinfoEndpoint = discovery["userinfo_endpoint"] as? String
+
+            val endpoints = DiscoveredEndpoints(
+                authorizationEndpoint = authEndpoint,
+                tokenEndpoint = tokenEndpoint,
+                userinfoEndpoint = userinfoEndpoint
+            )
+
+            // Cache the discovered endpoints
+            discoveredEndpoints = endpoints
+
+            journalist.logger.debug("[OIDC] Discovered endpoints - Auth: $authEndpoint, Token: $tokenEndpoint")
+
+            return endpoints
+        } catch (e: Exception) {
+            journalist.logger.debug("[OIDC] Endpoint discovery failed: ${e.message}")
+            throw IllegalStateException("Failed to discover OIDC endpoints: ${e.message}")
+        }
+    }
+
+    /**
+     * Clear cached endpoints (useful when issuer changes)
+     */
+    override fun clearDiscoveredEndpoints() {
+        discoveredEndpoints = null
+        discoveredIssuer = null
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -179,9 +294,10 @@ class OidcFacadeImpl(
 
     @Suppress("UNCHECKED_CAST")
     private fun exchangeCodeForTokens(code: String): Map<String, Any>? {
-        val settings = oidcSettings.get()
+        // Get token endpoint (use configured or discover)
+        val tokenEndpoint = getTokenEndpoint()
 
-        val tokenEndpoint = "${settings.issuer.removeSuffix("/")}/api/login/oauth/access_token"
+        val settings = oidcSettings.get()
 
         val requestBody = mapOf(
             "grant_type" to "authorization_code",

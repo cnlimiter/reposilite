@@ -29,6 +29,15 @@ data class OidcSettings(
     @get:Doc(title = "Issuer", description = "OIDC Provider URL (e.g., https://your-idp.example.com)")
     val issuer: String = "",
 
+    @get:Doc(title = "Authorization Endpoint", description = "OIDC authorization endpoint (auto-discovered if empty)")
+    val authorizationEndpoint: String = "",
+
+    @get:Doc(title = "Token Endpoint", description = "OIDC token endpoint (auto-discovered if empty)")
+    val tokenEndpoint: String = "",
+
+    @get:Doc(title = "Userinfo Endpoint", description = "OIDC userinfo endpoint (auto-discovered if empty)")
+    val userinfoEndpoint: String = "",
+
     @get:Doc(title = "Client ID", description = "OAuth2 Client ID")
     val clientId: String = "",
 

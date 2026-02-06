@@ -173,30 +173,37 @@ class OidcEndpoints(
     )
     private val oidcConfiguration = ReposiliteRoute<Unit>("/api/auth/oidc/configuration", Route.GET) {
         val settings = oidcFacade.getOidcSettings()
+
+        // Determine if using auto-discovery
+        val usesAutoDiscovery = settings.authorizationEndpoint.isBlank() && settings.tokenEndpoint.isBlank()
+
+        // Get endpoints (configured or will be discovered)
+        val authEndpoint = settings.authorizationEndpoint.ifBlank {
+            null // Will be discovered
+        }
+
+        val tokenEp = settings.tokenEndpoint.ifBlank {
+            null // Will be discovered
+        }
+
+        val userinfoEp = settings.userinfoEndpoint.ifBlank {
+            null // May be discovered
+        }
+
         ctx.json(OidcConfigurationResponse(
             issuer = settings.issuer,
             clientId = settings.clientId,
             redirectUri = settings.redirectUri,
             scopes = settings.scopes.split(" ").filter { it.isNotBlank() },
-            tokenType = settings.tokenType
+            tokenType = settings.tokenType,
+            authorizationEndpoint = authEndpoint,
+            tokenEndpoint = tokenEp,
+            userinfoEndpoint = userinfoEp,
+            usesAutoDiscovery = usesAutoDiscovery
         ))
     }
 
-    @OpenApi(
-        path = "/api/auth/oidc/register",
-        methods = [HttpMethod.GET],
-        summary = "Initiate OIDC registration",
-        description = "Redirects the user to the OIDC provider for registration",
-        responses = [
-            OpenApiResponse(status = "302", description = "Redirect to OIDC provider")
-        ]
-    )
-    private val oidcRegister = ReposiliteRoute<Unit>("/api/auth/oidc/register", Route.GET) {
-        val authorizationUrl = oidcFacade.generateAuthorizationUrl(prompt = "consent")
-        ctx.redirect(authorizationUrl)
-    }
-
-    override val routes = routes(oidcLogin, oidcCallback, oidcUser, oidcConfiguration, oidcRegister)
+    override val routes = routes(oidcLogin, oidcCallback, oidcUser, oidcConfiguration)
 }
 
 data class OidcCallbackResponse(
@@ -228,5 +235,9 @@ data class OidcConfigurationResponse(
     val clientId: String,
     val redirectUri: String,
     val scopes: List<String>,
-    val tokenType: String
+    val tokenType: String,
+    val authorizationEndpoint: String?,
+    val tokenEndpoint: String?,
+    val userinfoEndpoint: String?,
+    val usesAutoDiscovery: Boolean
 )
