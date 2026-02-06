@@ -59,6 +59,14 @@ class OidcFacadeImpl(
     }
 
     override fun generateAuthorizationUrl(): String {
+        return generateAuthorizationUrlWithPrompt(null)
+    }
+
+    override fun generateAuthorizationUrl(prompt: String): String {
+        return generateAuthorizationUrlWithPrompt(prompt)
+    }
+
+    private fun generateAuthorizationUrlWithPrompt(prompt: String?): String {
         val settings = oidcSettings.get()
 
         if (settings.issuer.isBlank()) {
@@ -67,18 +75,25 @@ class OidcFacadeImpl(
 
         // Generate state for CSRF protection
         val state = generateSecureState()
+        val nonce = generateSecureState()
 
         // Build authorization URL
-        val authEndpoint = "${settings.issuer.removeSuffix("/")}/protocol/openid-connect/auth"
+        val authEndpoint = "${settings.issuer.removeSuffix("/")}/login"
         val scopes = settings.scopes.split(" ").filter { it.isNotBlank() }.joinToString(" ")
 
-        val params = mapOf(
+        val params = mutableMapOf(
+            "response_type" to "code",
             "client_id" to settings.clientId,
             "redirect_uri" to settings.redirectUri,
-            "response_type" to "code",
             "scope" to scopes,
-            "state" to state
+            "state" to state,
+            "nonce" to nonce
         )
+
+        // Add prompt parameter if provided (e.g., "consent" for registration flow)
+        if (!prompt.isNullOrBlank()) {
+            params["prompt"] = prompt
+        }
 
         val queryString = params.entries.joinToString("&") { "${it.key}=${encodeURIComponent(it.value)}" }
         return "$authEndpoint?$queryString"
@@ -166,7 +181,7 @@ class OidcFacadeImpl(
     private fun exchangeCodeForTokens(code: String): Map<String, Any>? {
         val settings = oidcSettings.get()
 
-        val tokenEndpoint = "${settings.issuer.removeSuffix("/")}/protocol/openid-connect/token"
+        val tokenEndpoint = "${settings.issuer.removeSuffix("/")}/api/login/oauth/access_token"
 
         val requestBody = mapOf(
             "grant_type" to "authorization_code",

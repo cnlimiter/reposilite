@@ -112,6 +112,19 @@ const createClient = (defaultName, defaultSecret) => {
         })
       }
     },
+    oidc: {
+      isEnabled() {
+        return axios.get(createURL("/api/auth/oidc/configuration"))
+          .then(response => response.status === 200)
+          .catch(() => false)
+      },
+      login() {
+        window.location.href = createURL("/api/auth/oidc/login")
+      },
+      register() {
+        window.location.href = createURL("/api/auth/oidc/register")
+      }
+    },
     settings: {
       domains() {
         return axios.get(createURL("/api/settings/domains"), {

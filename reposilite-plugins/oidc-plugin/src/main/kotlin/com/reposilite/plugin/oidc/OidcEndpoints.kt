@@ -182,7 +182,21 @@ class OidcEndpoints(
         ))
     }
 
-    override val routes = routes(oidcLogin, oidcCallback, oidcUser, oidcConfiguration)
+    @OpenApi(
+        path = "/api/auth/oidc/register",
+        methods = [HttpMethod.GET],
+        summary = "Initiate OIDC registration",
+        description = "Redirects the user to the OIDC provider for registration",
+        responses = [
+            OpenApiResponse(status = "302", description = "Redirect to OIDC provider")
+        ]
+    )
+    private val oidcRegister = ReposiliteRoute<Unit>("/api/auth/oidc/register", Route.GET) {
+        val authorizationUrl = oidcFacade.generateAuthorizationUrl(prompt = "consent")
+        ctx.redirect(authorizationUrl)
+    }
+
+    override val routes = routes(oidcLogin, oidcCallback, oidcUser, oidcConfiguration, oidcRegister)
 }
 
 data class OidcCallbackResponse(
