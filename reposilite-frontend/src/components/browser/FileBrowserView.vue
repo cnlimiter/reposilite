@@ -132,7 +132,7 @@ const MenuButton = (_, context) => {
         <div class="lg:absolute pt-13 -top-5 right-8">
           <Card :qualifier="qualifier" />
         </div>
-        <div class="lg:max-w-2/5 xl:max-w-1/2">
+        <div class="lg:max-w-1/3 xl:max-w-2/5">
           <div class="flex justify-between pt-7 px-2">
             <Breadcrumb :parentPath="parentPath" />
             <div class="flex">
