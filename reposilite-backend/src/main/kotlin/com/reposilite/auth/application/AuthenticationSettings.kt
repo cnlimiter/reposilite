@@ -25,7 +25,8 @@ import io.javalin.openapi.JsonSchema
 @JsonSchema(requireNonNulls = false)
 @Doc(title = "Authentication", description = "Authenticator settings")
 data class AuthenticationSettings(
-    val ldap: LdapSettings = LdapSettings()
+    val ldap: LdapSettings = LdapSettings(),
+    val oidc: OidcSettings = OidcSettings()
 ) : SharedSettings
 
 @Doc(title = "LDAP", description = "LDAP Authenticator settings")

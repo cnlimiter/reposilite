@@ -17,6 +17,7 @@
 package com.reposilite.auth.application
 
 import com.reposilite.auth.infrastructure.AuthenticationEndpoint
+import com.reposilite.auth.infrastructure.OidcEndpoints
 import com.reposilite.auth.infrastructure.PostAuthHandler
 import com.reposilite.configuration.shared.SharedConfigurationFacade
 import com.reposilite.plugin.api.Facade
@@ -25,24 +26,32 @@ import com.reposilite.plugin.api.ReposilitePlugin
 import com.reposilite.plugin.event
 import com.reposilite.plugin.facade
 import com.reposilite.web.api.RoutingSetupEvent
+import panda.std.reactive.Reference
+import panda.std.reactive.Reference.Dependencies
 
 @Plugin(name = "authentication", dependencies = ["failure", "shared-configuration", "access-token"], settings = AuthenticationSettings::class)
 class AuthenticationPlugin : ReposilitePlugin() {
 
     override fun initialize(): Facade {
         val sharedConfigurationFacade = facade<SharedConfigurationFacade>()
+        val authenticationSettings: Reference<AuthenticationSettings> = sharedConfigurationFacade.getDomainSettings()
 
         val authenticationFacade =
             AuthenticationComponents(
                 journalist = this,
                 accessTokenFacade = facade(),
                 failureFacade = facade(),
-                authenticationSettings = sharedConfigurationFacade.getDomainSettings(),
+                authenticationSettings = authenticationSettings,
                 disableUserPasswordAuthentication = System.getProperty("reposilite.ldap.disable-user-password-authentication", "false") == "true"
             ).authenticationFacade()
 
         event { event: RoutingSetupEvent ->
             event.registerRoutes(AuthenticationEndpoint(authenticationFacade))
+            event.registerRoutes(OidcEndpoints(
+                journalist = this@AuthenticationPlugin,
+                oidcSettings = Reference.computed(Dependencies.dependencies(authenticationSettings)) { authenticationSettings.map { it.oidc } },
+                accessTokenFacade = facade()
+            ))
             event.registerRoutes(PostAuthHandler())
         }
 

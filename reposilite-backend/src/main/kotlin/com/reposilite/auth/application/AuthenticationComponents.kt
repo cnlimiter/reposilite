@@ -20,6 +20,7 @@ import com.reposilite.auth.AuthenticationFacade
 import com.reposilite.auth.Authenticator
 import com.reposilite.auth.BasicAuthenticator
 import com.reposilite.auth.LdapAuthenticator
+import com.reposilite.auth.OidcAuthenticator
 import com.reposilite.journalist.Journalist
 import com.reposilite.plugin.api.PluginComponents
 import com.reposilite.status.FailureFacade
@@ -48,10 +49,20 @@ class AuthenticationComponents(
             disableUserPasswordAuthentication = disableUserPasswordAuthentication,
         )
 
+    private fun oidcAuthenticator(): OidcAuthenticator =
+        OidcAuthenticator(
+            journalist = journalist,
+            oidcSettings = Reference.computed(Dependencies.dependencies(authenticationSettings)) { authenticationSettings.map { it.oidc } },
+            accessTokenFacade = accessTokenFacade,
+            failureFacade = failureFacade,
+            httpClient = OidcAuthenticator.createHttpClient()
+        )
+
     private fun authenticators(): SortedSet<Authenticator> =
         sortedSetOf(
             Authenticator.priorityComparator,
             basicAuthenticator(),
+            oidcAuthenticator(),
             ldapAuthenticator()
         )
 

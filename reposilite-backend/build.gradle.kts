@@ -146,6 +146,12 @@ dependencies {
 
     val ldap = "7.0.3"
     testImplementation("com.unboundid:unboundid-ldapsdk:$ldap")
+
+    // OIDC support
+    val okhttp = "4.12.0"
+    implementation("com.squareup.okhttp3:okhttp:$okhttp")
+    implementation("com.squareup.okhttp3:logging-interceptor:$okhttp")
+    implementation("com.nimbusds:nimbus-jose-jwt:9.47")
 }
 
 tasks.withType<ShadowJar> {

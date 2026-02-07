@@ -21,10 +21,8 @@ import { createToast } from 'mosha-vue-toastify'
 import { useSession } from '../../store/session'
 import CloseIcon from '../icons/CloseIcon.vue'
 import useLocale from '../../store/locale'
-import useOidc from '../../store/oidc'
 
 const { t } = useLocale()
-const { oidc, fetchOidcStatus } = useOidc()
 const { login } = useSession()
 
 const showLogin = ref(false)
@@ -39,14 +37,6 @@ const signin = (name, secret) =>
     .then(() => createToast(t('dashboardAccessedAs') + ' ' + name, { position: 'bottom-right' }))
     .then(() => close())
     .catch(error => createToast(`${error.response?.status}: ${error.response?.data?.message}`, { type: 'danger' }))
-
-const handleOidcLogin = () => {
-  window.location.href = '/api/auth/oidc/login'
-}
-
-onMounted(() => {
-  fetchOidcStatus()
-})
 </script>
 
 <script>
@@ -69,13 +59,6 @@ export default {
           <input :placeholder="$t('name')" v-model="name" type="text" class="input"/>
           <input :placeholder="$t('secret')" v-model="secret" type="password" class="input"/>
           <button class="bg-gray-100 dark:bg-gray-800 py-2 my-3 rounded-md cursor-pointer">{{ $t('signIn') }}</button>
-          <button
-              v-if="oidc.enabled && !oidc.loading"
-              @click="handleOidcLogin"
-              class="bg-blue-600 hover:bg-blue-700 text-white py-2 my-3 rounded-md cursor-pointer"
-          >
-            {{ $t('signInWithOidc') }}
-          </button>
         </form>
         <button class="absolute top-0 right-0 mt-5 mr-5" @click="close()">
           <CloseIcon />
