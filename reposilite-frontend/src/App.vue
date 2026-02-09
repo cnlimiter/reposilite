@@ -24,7 +24,7 @@ import useLocale from "./store/locale"
 
 const { title, description, icpLicense } = usePlaceholders()
 const { theme, fetchColorMode } = useTheme()
-const { initializeSession } = useSession()
+const { initializeSession, setToken } = useSession()
 const { qualifier } = useQualifier()
 const { fetchLocale } = useLocale()
 
@@ -32,9 +32,30 @@ useHead({
   title,
   description
 })
+
+// 处理 OIDC 回调返回的 token 参数
+const handleOidcCallback = () => {
+  const urlParams = new URLSearchParams(window.location.search)
+  const tokenName = urlParams.get('token_name')
+  const tokenSecret = urlParams.get('token_secret')
+
+  if (tokenName && tokenSecret) {
+    // 保存到 localStorage
+    localStorage.setItem('token-name', tokenName)
+    localStorage.setItem('token-secret', tokenSecret)
+    // 清理 URL 参数
+    window.history.replaceState({}, document.title, window.location.pathname)
+    return true
+  }
+  return false
+}
+
 fetchColorMode()
 fetchLocale()
-initializeSession().catch(() => {})
+// OIDC 回调优先处理
+if (!handleOidcCallback()) {
+  initializeSession().catch(() => {})
+}
 </script>
 
 <template>

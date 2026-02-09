@@ -63,8 +63,6 @@ internal class OidcEndpoints(
     private val objectMapper = ObjectMapper()
     private val secureRandom = SecureRandom()
 
-    // Discovery document cache
-    private var cachedDiscovery: DiscoveryDocument? = null
 
     @OpenApi(
         path = "/api/auth/oidc/configuration",
@@ -224,10 +222,24 @@ internal class OidcEndpoints(
         }
 
         // Set authentication cookie
-        ctx.cookie("reposilite_auth", "${tokenName}:${tokenSecret}")
-        ctx.cookie("reposilite_auth_username", tokenName)
+        ctx.cookie("token-name", tokenName)
+        ctx.cookie("token-secret", "$tokenSecret")
 
         journalist.logger.debug("[OIDC] Login successful for user: $username")
+
+        // Redirect with token credentials (方案2)
+//        val redirectUrl = buildString {
+//            append(redirectUri)
+//            if (redirectUri.contains("?")) {
+//                append("&")
+//            } else {
+//                append("?")
+//            }
+//            append("token_name=").append(URLEncoder.encode(tokenName, StandardCharsets.UTF_8))
+//            if (tokenSecret != null) {
+//                append("&token_secret=").append(URLEncoder.encode(tokenSecret, StandardCharsets.UTF_8))
+//            }
+//        }
         ctx.redirect(redirectUri)
         response = ok(Unit)
     }
@@ -283,8 +295,6 @@ internal class OidcEndpoints(
      */
     private fun fetchDiscovery(settings: OidcSettings): DiscoveryDocument? {
         // Return cached discovery if available
-        cachedDiscovery?.let { return it }
-
         if (settings.issuer.isBlank()) {
             journalist.logger.warn("[OIDC] Cannot fetch discovery document: issuer is empty")
             return null
@@ -314,9 +324,6 @@ internal class OidcEndpoints(
                     jwksUri = json.path("jwks_uri").asText(),
                     issuer = json.path("issuer").asText()
                 )
-
-                // Cache the discovery document
-                cachedDiscovery = discovery
                 journalist.logger.debug("[OIDC] Successfully fetched discovery document")
                 discovery
             }
@@ -324,13 +331,6 @@ internal class OidcEndpoints(
             journalist.logger.warn("[OIDC] Failed to fetch discovery document: ${e.message}")
             null
         }
-    }
-
-    /**
-     * Invalidate cached discovery document (useful when issuer changes)
-     */
-    fun invalidateCache() {
-        cachedDiscovery = null
     }
 
     /**
